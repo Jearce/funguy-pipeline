@@ -1,6 +1,9 @@
 ##Genome size is stored in est_genomesize.txt as a number divided by 1million.
 ##E.g 5m bp is 5, 1g bp is 1000
 
+#TODO: rename the prot_input for eggnog | Check if eggnog work from start to finish by itself
+#TODO: Edit the threads CPU for rules
+
 ##Input format for assembly: nanopore_{species}.fasta	trimmed_{species}_illumina1.fastq.gz	trimmed_{species}_illumina2.fastq.gz
 from Bio import SeqIO
 
@@ -20,11 +23,6 @@ def eggnog_get_fasta(annofile, prot_file):
 					record.id='eggnog_'+record.id+'_'+v
 					record.description=''	  #'eggnog_'+record.description+'_'+v
 			SeqIO.write(record, output,'fasta')
-
-def read_genome_size(wildcards):  #can't find a way to pass anything except wildcards so have to make independent func for each newly generated file that need to be read. Other data can be put in config file
-	with open(wildcards.species+'/est_genomesize.txt','r') as file:
-		gs=file.readline().strip()
-	return gs
 
 def read_file(species_id,filename):
 	#with open(species_id+'/'+filename,"r") as file:
@@ -62,22 +60,24 @@ rule canu_assemble:	#requires trimmed and corrected reads from canu. Output to f
 	input:
 		path="{species}/trimmed_corr_{species}_nano.fasta.gz"
 	output:
-		"{species}/canu_{species}_contigs.fasta"
+		"{species}/draft/canu_{species}_contigs.fasta"
 	run:
+		shell("if [ -d {wildcards.species}/drafts ]; then echo drafts folder already exists; else mkdir {wildcards.species}/drafts; fi")
 		gsize=read_file(wildcards.species,'est_genomesize.txt')
 		shell("canu -p {wildcards.species} genomeSize={gsize}m "
 		"-trimmed -corrected -d {wildcards.species}/canu_out -nanopore {input.path}"
-		"&& cp {wildcards.species}/canu_out/{wildcards.species}.contigs.fasta {wildcards.species}/")
-		#shell("touch {output}")
+		"&& cp {wildcards.species}/canu_out/{wildcards.species}.contigs.fasta {wildcards.species}/drafts/")
+		shell("mv {wildcards.species}/drafts/{wildcards.species}.contigs.fasta {output}")
 		
 rule flye_assemble: #requires trimmed and corrected reads from canu. Output to flye_out. 
 					#Assembled genome is moved to {species} folder
 	input:
 		path="{species}/trimmed_corr_{species}_nano.fasta.gz"
 	output:
-		"{species}/flye_{species}_assembly.fasta"
+		"{species}/drafts/flye_{species}_assembly.fasta"
 	threads: 4
 	run:
+		shell("if [ -d {wildcards.species}/drafts ]; then echo drafts folder already exists; else mkdir {wildcards.species}/drafts; fi")
 		gsize=read_file(wildcards.species,'est_genomesize.txt')
 		shell("flye -g {gsize}m -t {threads} "
 		"-o {wildcards.species}/flye_out --nano-corr {input.path}"
@@ -94,9 +94,10 @@ rule wengan_assemble: 	#produce all files in cwd. After assembly, move everythin
 		short1="{species}/trimmed_{species}_illumina1.fastq.gz",
 		short2="{species}/trimmed_{species}_illumina2.fastq.gz"
 	output:
-		"{species}/wengan_{species}_assembly.fasta"
+		"{species}/drafts/wengan_{species}_assembly.fasta"
 	threads: 4
 	run:
+		shell("if [ -d {wildcards.species}/drafts ]; then echo drafts folder already exists; else mkdir {wildcards.species}/drafts; fi")
 		gsize=read_file(wildcards.species,'est_genomesize.txt')
 		shell("perl $WG -x ontraw -a M -s {input.short1},{input.short2} "
 		"-l {input.nano} -p wengan_{wildcards.species} -t {threads} -g {gsize} "
