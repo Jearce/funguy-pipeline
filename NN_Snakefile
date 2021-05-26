@@ -60,7 +60,7 @@ rule canu_assemble:	#requires trimmed and corrected reads from canu. Output to f
 	input:
 		path="{species}/trimmed_corr_{species}_nano.fasta.gz"
 	output:
-		"{species}/draft/canu_{species}_contigs.fasta"
+		"{species}/drafts/canu_{species}_contigs.fasta"
 	run:
 		shell("if [ -d {wildcards.species}/drafts ]; then echo drafts folder already exists; else mkdir {wildcards.species}/drafts; fi")
 		gsize=read_file(wildcards.species,'est_genomesize.txt')
