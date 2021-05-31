@@ -1,6 +1,9 @@
-class Polish:
-  def __init__(self, *, polish_path, busco_path, busco_score):
-    self.polish_path = polish_path
+import subprocess
+from pathlib import Path
+
+class BuscoResult:
+  def __init__(self, *, contigs, busco_path, busco_score):
+    self.contigs = contigs
     self.busco_score = busco_score
     self.busco_path = busco_path
 
@@ -15,60 +18,101 @@ class PolishPipeline:
     self.PILON_ROUNDS = 4
 
   def run(self):
-    for index, draft in enumerate(self.drafts):
-      polish_dir = f"{self.root_dir}/{draft.stem}"
-      Path(polish_dir).mkdir(exist_ok=True)
-      polished_assembly = self.pilon_polish(polish_dir, draft)
+    busco_results = [self.polish(draft) for draft in self.drafts]
+    best_polish = max(busco_results, key=lambda busco_result: busco_result.busco_score)
+    best_dir = f"{self.root_dir}/best"
+    shell("mkdir -p {best_dir}")
+    shell("cp {best_polish.contigs} {best_dir}")
+
+  def polish(self, draft):
+    polish_dir = f"{self.root_dir}/{draft.stem}"
+    Path(polish_dir).mkdir(exist_ok=True)
+
+    #pilon first
+    #pilon_polish = self.pilon_polish(polish_dir, draft)
+
+    #then medaka
+    medaka_polish = self.medaka_polish(polish_dir, draft)
+    return medaka_polish
+
+
+
 
   def medaka_polish(self, polish_dir, draft):
-    current_draft = draft
+
+    busco_result = BuscoResult(contigs=draft, busco_score=None, busco_path=None)
     for i in range(self.MEDAKA_ROUNDS):
       out_dir = f"{polish_dir}/medaka/round_{i}"
-      command = f"medaka_consensus -i {self.long_reads} -d {current_draft} -o {out_dir} -t 10"
+      command = f"medaka_consensus -i {self.long_reads} -d {busco_result.contigs} -o {out_dir} -t 10"
       print(f"\n Running: {command} \n")
       subprocess.run(command.split(" "))
-      polish = Path(current_draft)
-      if not polish.is_file():
-        raise Exception(f"medaka was unable to polish {draft} on round {i}")
 
-      #TODO: run busco and keep track of buso scores
+      polish = f"{out_dir}/consensus.fasta"
+      if not Path(polish).is_file():
+        raise Exception(f"medaka was unable to polish {busco_result.contigs} on round {i}")
 
-      current_draft = f"{out_dir}/consensus.fasta"
+      new_busco_result = run_busco(polish, f"{out_dir}/busco_out", "basidiomycota_odb10")
+
+      #just ran busco for the best time
+      if None in (busco_result.busco_score, busco_result.busco_path):
+        busco_result = new_busco_result
+      else:
+        busco_result = determine_best_polish(new_busco_result, busco_result)
+
+      if not busco_result:
+        break
+
+      return busco_result
+
 
   def pilon_polish(self, polish_dir, draft):
     out_dir = f"{polish_dir}/pilon"
     Path(out_dir).mkdir(exist_ok=True)
 
     r1, r2 = self.short_reads
-    current_draft = draft
+
+    # setting up inital busco results
+    busco_result = BuscoResult(contigs=draft, busco_score=None, busco_path=None)
     for i in range(self.PILON_ROUNDS):
       sorted_aln = f"{out_dir}/sorted.bam"
       pilon_out = f"{out_dir}/round_{i}"
+      print(f"\n ----------- {busco_result.contigs} -------------\n")
 
-      shell("minimap2 -ax sr {current_draft} {r1} {r2} | samtools view -u | samtools sort -@ 10 > {sorted_aln}")
+      shell("minimap2 -ax sr {busco_result.contigs} {r1} {r2} | samtools view -u | samtools sort -@ 10 > {sorted_aln}")
       shell("samtools index {sorted_aln}")
-      shell("pilon --genome {current_draft} --frags {sorted_aln} --outdir {pilon_out}")
+      shell("pilon --genome {busco_result.contigs} --frags {sorted_aln} --outdir {pilon_out}")
       shell("rm {sorted_aln}")
 
-      polish = Path(current_draft)
-      if not polish.is_file():
-        raise Exception(f"pilon was unable to polish {draft} on round {i}")
+      polish = f"{pilon_out}/pilon.fasta"
+      print(f"\n ----------- {polish} -------------\n")
 
-      #TODO: run busco and keep track of buso scores
-      busco_score = get_busco_score(current_draft)
-      if busco_score > current_busco_score:
-        best_polish = current_draft
+      if not Path(polish).is_file():
+        raise Exception(f"pilon was unable to polish {busco_result.contigs} on round {i}")
+
+      new_busco_result = run_busco(polish, f"{pilon_out}/busco_out", "basidiomycota_odb10")
+
+      #just ran busco for the best time
+      if None in (busco_result.busco_score, busco_result.busco_path):
+        busco_result = new_busco_result
       else:
+        busco_result = determine_best_polish(new_busco_result, busco_result)
+
+      if not busco_result:
         break
 
+    return busco_result
 
-      current_draft = f"{pilon_out}/pilon.fasta"
 
-# lineages/basidiomycota_odb10
-def run_busco(contigs, outdir, lineage):
-  command = f"busco -m genome -i {contigs} -o {outdir} -l {lineage} --cpu 20"
+def determine_best_polish(new_busco_result, old_busco_result):
+  if new_busco_result.busco_score > old_busco_result.busco_score:
+    return new_busco_result
+  else:
+    return False
+
 
 def get_busco_score(short_summary):
+  """get busco Complete score from short_summary.txt"""
+
   with open(short_summary) as f:
     for line in f:
       line = line.strip()
@@ -77,6 +121,28 @@ def get_busco_score(short_summary):
       elif line.startswith("C:"):
         line = line.replace('%','').replace('[',',').replace(']','')
         return float(line.split(",")[0].split(':')[1])
+
+# lineages/basidiomycota_odb10
+def run_busco(contigs, outdir, lineage):
+  busco_path = Path(outdir)
+
+  #no slashes allowed in -o parameter so put stem as output
+  cmd = f"busco -m genome -i {contigs} -o {busco_path.stem} -l {lineage} --cpu 20"
+  print(f"\n ---------------------- {cmd} -------------------- \n")
+  subprocess.run(cmd.split())
+  shell("mv {busco_path.stem} {busco_path}")
+
+  path = list(Path(outdir).glob("*/short_summary.txt"))
+  if not path:
+    raise Exception("cannot find short_summary.txt")
+
+  short_summary = path[0]
+  busco_score = get_busco_score(short_summary)
+  return BuscoResult(
+      contigs=contigs,
+      busco_score=busco_score,
+      busco_path=outdir
+  )
 
 rule reciprocal_polishing:
   input:
