@@ -9,13 +9,14 @@ class BuscoResult:
 
 class PolishPipeline:
 
-  def __init__(self, *, root_dir, drafts, long_reads, short_reads):
+  def __init__(self, *, root_dir, drafts, long_reads, short_reads, threads):
     self.root_dir = root_dir
     self.drafts = drafts
     self.long_reads = long_reads
     self.short_reads = short_reads
     self.MEDAKA_ROUNDS = 4
     self.PILON_ROUNDS = 4
+    self.threads = threads
 
   def run(self):
     busco_results = [self.polish(draft) for draft in self.drafts]
@@ -42,7 +43,7 @@ class PolishPipeline:
     busco_result = BuscoResult(contigs=draft, busco_score=None, busco_path=None)
     for i in range(self.MEDAKA_ROUNDS):
       out_dir = f"{polish_dir}/medaka/round_{i}"
-      command = f"medaka_consensus -i {self.long_reads} -d {busco_result.contigs} -o {out_dir} -t 20"
+      command = f"medaka_consensus -i {self.long_reads} -d {busco_result.contigs} -o {out_dir} -t {self.threads}"
       print(f"\n Running: {command} \n")
       subprocess.run(command.split(" "))
 
@@ -77,7 +78,7 @@ class PolishPipeline:
       pilon_out = f"{out_dir}/round_{i}"
       print(f"\n ----------- {busco_result.contigs} -------------\n")
 
-      shell("minimap2 -ax sr {busco_result.contigs} {r1} {r2} | samtools view -u | samtools sort -@ 20 > {sorted_aln}")
+      shell("minimap2 -ax sr {busco_result.contigs} {r1} {r2} | samtools view -u | samtools sort -@ {self.threads} > {sorted_aln}")
       shell("samtools index {sorted_aln}")
       shell("pilon --genome {busco_result.contigs} --frags {sorted_aln} --outdir {pilon_out}")
       shell("rm {sorted_aln}")
@@ -126,7 +127,7 @@ def run_busco(contigs, outdir, lineage):
   busco_path = Path(outdir)
 
   #no slashes allowed in -o parameter so put stem as output
-  cmd = f"busco -m genome -i {contigs} -o {busco_path.stem} -l {lineage} --cpu 20"
+  cmd = f"busco -m genome -i {contigs} -o {busco_path.stem} -l {lineage} --cpu 25"
   print(f"\n ---------------------- {cmd} -------------------- \n")
   subprocess.run(cmd.split())
   shell("mv {busco_path.stem} {busco_path}")
@@ -167,5 +168,6 @@ rule reciprocal_polishing:
         drafts=draft_assemblies,
         long_reads=input.long_reads,
         short_reads=[input.r1, input.r2],
+        threads=30,
     )
     pipeline.run()
