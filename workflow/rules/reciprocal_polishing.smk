@@ -29,13 +29,12 @@ class PolishPipeline:
     Path(polish_dir).mkdir(exist_ok=True)
 
     #pilon first
-    #pilon_polish = self.pilon_polish(polish_dir, draft)
+    pilon_polish = self.pilon_polish(polish_dir, draft)
 
     #then medaka
-    medaka_polish = self.medaka_polish(polish_dir, draft)
+    medaka_polish = self.medaka_polish(polish_dir, pilon_polish)
+
     return medaka_polish
-
-
 
 
   def medaka_polish(self, polish_dir, draft):
@@ -43,7 +42,7 @@ class PolishPipeline:
     busco_result = BuscoResult(contigs=draft, busco_score=None, busco_path=None)
     for i in range(self.MEDAKA_ROUNDS):
       out_dir = f"{polish_dir}/medaka/round_{i}"
-      command = f"medaka_consensus -i {self.long_reads} -d {busco_result.contigs} -o {out_dir} -t 10"
+      command = f"medaka_consensus -i {self.long_reads} -d {busco_result.contigs} -o {out_dir} -t 20"
       print(f"\n Running: {command} \n")
       subprocess.run(command.split(" "))
 
@@ -78,7 +77,7 @@ class PolishPipeline:
       pilon_out = f"{out_dir}/round_{i}"
       print(f"\n ----------- {busco_result.contigs} -------------\n")
 
-      shell("minimap2 -ax sr {busco_result.contigs} {r1} {r2} | samtools view -u | samtools sort -@ 10 > {sorted_aln}")
+      shell("minimap2 -ax sr {busco_result.contigs} {r1} {r2} | samtools view -u | samtools sort -@ 20 > {sorted_aln}")
       shell("samtools index {sorted_aln}")
       shell("pilon --genome {busco_result.contigs} --frags {sorted_aln} --outdir {pilon_out}")
       shell("rm {sorted_aln}")
