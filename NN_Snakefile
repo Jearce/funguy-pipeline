@@ -1,0 +1,145 @@
+##Genome size is stored in est_genomesize.txt as a number divided by 1million.
+##E.g 5m bp is 5, 1g bp is 1000
+
+#TODO: rename the prot_input for eggnog | Check if eggnog work from start to finish by itself
+#TODO: Edit the threads CPU for rules
+
+##Input format for assembly: nanopore_{species}.fasta	trimmed_{species}_illumina1.fastq.gz	trimmed_{species}_illumina2.fastq.gz
+from Bio import SeqIO
+
+def eggnog_get_fasta(annofile, prot_file):
+	with open(annofile,"r") as file:
+		all_anno={}
+		for line in file:
+			if not line.startswith('#'):
+				all_anno[line.split('\t')[0]]=line.split('\t')[7]
+				current_anno=line.split('\t')[0]
+	with open(prot_file,'r') as orig, open('eggnog_out','w') as output:
+		records=SeqIO.parse(orig,'fasta')
+		for record in records:
+			#print(record.id+'\t'+record.seq)
+			for k, v in all_anno.items():
+				if k == record.id:
+					record.id='eggnog_'+record.id+'_'+v
+					record.description=''	  #'eggnog_'+record.description+'_'+v
+			SeqIO.write(record, output,'fasta')
+
+def read_file(species_id,filename):
+	#with open(species_id+'/'+filename,"r") as file:
+	#	gs=file.readline().strip()
+	return open(species_id+'/'+filename,"r").readline().strip()
+
+rule canu_correction: #produce the corrected reads in {species}/corrected_reads dir then mv it to {species} dir and rename to {output}
+	input:
+		path="{species}/nanopore_{species}.fasta" ##Need to change to fastq if input is different
+	output:
+		"{species}/corrected_{species}_nano.fasta.gz"
+#	params:
+#		gsize=read_genome_size
+	run:
+		gsize=read_file(wildcards.species,'est_genomesize.txt')
+		shell("canu -correct -p canu genomeSize={gsize}m "
+		"-d {wildcards.species}/corrected_reads -nanopore {input.path}"
+		"&& mv {wildcards.species}/corrected_reads/canu.correctedReads.fasta.gz {output}")
+		#shell("touch {output}")
+		
+rule canu_trim: #produce the trimmed reads in {species}/trimmed_reads dir then mv it to {species} dir and rename to {output}
+	input:
+		path="{species}/corrected_{species}_nano.fasta.gz"
+	output:
+		"{species}/trimmed_corr_{species}_nano.fasta.gz"
+	run:
+		gsize=read_file(wildcards.species,'est_genomesize.txt')
+		shell("canu -trim -p canu genomeSize={gsize}m "
+		"-corrected -d {wildcards.species}/trimmed_reads -nanopore {input.path}"
+		"&& mv {wildcards.species}/trimmed_reads/canu.trimmedReads.fasta.gz {output}")
+		#shell("touch {output}")
+		
+rule canu_assemble:	#requires trimmed and corrected reads from canu. Output to flye_out.
+					#Assembled genome is moved to {species} folder
+	input:
+		path="{species}/trimmed_corr_{species}_nano.fasta.gz"
+	output:
+		"{species}/drafts/canu_{species}_contigs.fasta"
+	run:
+		shell("if [ -d {wildcards.species}/drafts ]; then echo drafts folder already exists; else mkdir {wildcards.species}/drafts; fi")
+		gsize=read_file(wildcards.species,'est_genomesize.txt')
+		shell("canu -p {wildcards.species} genomeSize={gsize}m "
+		"-trimmed -corrected -d {wildcards.species}/canu_out -nanopore {input.path}"
+		"&& cp {wildcards.species}/canu_out/{wildcards.species}.contigs.fasta {wildcards.species}/drafts/")
+		shell("mv {wildcards.species}/drafts/{wildcards.species}.contigs.fasta {output}")
+		
+rule flye_assemble: #requires trimmed and corrected reads from canu. Output to flye_out. 
+					#Assembled genome is moved to {species} folder
+	input:
+		path="{species}/trimmed_corr_{species}_nano.fasta.gz"
+	output:
+		"{species}/drafts/flye_{species}_assembly.fasta"
+	threads: 4
+	run:
+		shell("if [ -d {wildcards.species}/drafts ]; then echo drafts folder already exists; else mkdir {wildcards.species}/drafts; fi")
+		gsize=read_file(wildcards.species,'est_genomesize.txt')
+		shell("flye -g {gsize}m -t {threads} "
+		"-o {wildcards.species}/flye_out --nano-corr {input.path}"
+		"&& cp {wildcards.species}/flye_out/assembly.fasta {wildcards.species}/")
+		shell("mv {wildcards.species}/assembly.fasta {output}")
+		#shell("touch {output}")
+		
+rule wengan_assemble: 	#produce all files in cwd. After assembly, move everything to wengan_out
+						#assembled genome is moved to {species} folder
+						#input MUST be .gz Other file types may result in errors
+						#Seem to require high coverage ~30X minimum
+	input:
+		nano="{species}/corrected_{species}_nano.fasta.gz",
+		short1="{species}/trimmed_{species}_illumina1.fastq.gz",
+		short2="{species}/trimmed_{species}_illumina2.fastq.gz"
+	output:
+		"{species}/drafts/wengan_{species}_assembly.fasta"
+	threads: 4
+	run:
+		shell("if [ -d {wildcards.species}/drafts ]; then echo drafts folder already exists; else mkdir {wildcards.species}/drafts; fi")
+		gsize=read_file(wildcards.species,'est_genomesize.txt')
+		shell("perl $WG -x ontraw -a M -s {input.short1},{input.short2} "
+		"-l {input.nano} -p wengan_{wildcards.species} -t {threads} -g {gsize} "
+		"&& mkdir {wildcards.species}/wengan_out/")
+		shell("mv wengan_{wildcards.species}* {wildcards.species}/wengan_out/")
+		shell("mv {wildcards.species}/wengan_out/wengan_{wildcards.species}.SPolished.asm.wengan.fasta {output}")
+		
+rule test_all:
+	input:
+		"{species}/wengan_{species}_assembly.fasta",
+		"{species}/flye_{species}_assembly.fasta",
+		"{species}/canu_{species}_contigs.fasta"
+	output:
+		"{species}/complete.txt"
+	shell:
+		"cat {input} > {output}"
+
+rule create_database_eggnog: #emapper.py --list_taxa > taxa_eggnog.txt to get list of taxa. 4751 is fungi
+	output:
+		"eggnog_database/fungi.dmnd",
+		"eggnog_database/eggnog.db",
+		"eggnog_database/e5.proteomes.faa"
+	run:
+		shell("if [ -d eggnog_database ]; then echo eggnog_database folder already exists; else mkdir eggnog_database; fi")
+		shell("download_eggnog_data.py --data_dir eggnog_database/ -y")
+		shell("create_dbs.py -y --taxa Fungi --data_dir eggnog_database --dbname fungi")
+		
+rule eggnog_anno: ##assume this fungi and use diamond to annotate
+					# assume input is protein
+	input:
+		prot_file="{species}/predicted_prot.fa", ## need predicted gene file name here
+		database="eggnog_database/fungi.dmnd",
+		eggnog_data="eggnog_database/eggnog.db",
+		proteome_data="eggnog_database/e5.proteomes.faa"
+	output:
+		"{species}/eggnog_anno/eggnog_out.fa"
+	threads: 4
+	run:
+		shell("if [ -d {wildcards.species}/eggnog_anno ]; then echo eggnog_anno folder already exists; else mkdir {wildcards.species}/eggnog_anno; fi")
+		shell("emapper.py -m diamond -i {input.prot_file} --dmnd_db {input.database} "
+		"-o eggnog_{wildcards.species} --output_dir {wildcards.species}/eggnog_anno "
+		"--cpu {threads} --override --data_dir eggnog_database/") 	# can add diamond sensitivity, tax_scope (more specific taxa) and 
+										# what level to retrieve annotation ( eg tax scope is gammabact but anno is at bacteria level)
+		eggnog_get_fasta(wildcards.species+"/eggnog_anno/eggnog_ecoli.emapper.annotations",input.prot_file)
+		shell("mv eggnog_out {output}")
