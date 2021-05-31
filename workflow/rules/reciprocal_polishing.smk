@@ -33,14 +33,22 @@ class PolishPipeline:
     pilon_polish = self.pilon_polish(polish_dir, draft)
 
     #then medaka
-    medaka_polish = self.medaka_polish(polish_dir, pilon_polish)
+    medaka_polish = self.medaka_polish(polish_dir, pilon_polish.contigs)
 
     return medaka_polish
 
 
   def medaka_polish(self, polish_dir, draft):
 
-    busco_result = BuscoResult(contigs=draft, busco_score=None, busco_path=None)
+    # start with a new draft
+    if draft not hasattr(draft, 'busco_score'):
+      busco_result = BuscoResult(contigs=draft, busco_score=None, busco_path=None)
+    # or a polished draft from pilon or other polishing tool
+    elif hasattr(draft, 'busco_score'):
+      busco_result = draft
+    else:
+      raise Exception(f"unknown draft type {draft}")
+
     for i in range(self.MEDAKA_ROUNDS):
       out_dir = f"{polish_dir}/medaka/round_{i}"
       command = f"medaka_consensus -i {self.long_reads} -d {busco_result.contigs} -o {out_dir} -t {self.threads}"
