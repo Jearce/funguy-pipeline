@@ -116,7 +116,7 @@ def is_improved(new_busco_result, old_busco_result):
 
 def is_first(busco_result):
   if None in (busco_result.busco_score, busco_result.busco_path):
-    return True:
+    return True
   else:
     return False
 
