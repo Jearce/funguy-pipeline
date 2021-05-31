@@ -61,13 +61,10 @@ class PolishPipeline:
 
       new_busco_result = run_busco(polish, f"{out_dir}/busco_out", "basidiomycota_odb10")
 
-      #just ran busco for the best time
-      if None in (busco_result.busco_score, busco_result.busco_path):
+      #just ran first polish or the nth polish has improved assembly
+      if is_first(busco_result) or is_improved(new_busco_result, busco_result):
         busco_result = new_busco_result
       else:
-        busco_result = determine_best_polish(new_busco_result, busco_result)
-
-      if not busco_result:
         break
 
       return busco_result
@@ -103,23 +100,25 @@ class PolishPipeline:
       new_busco_result = run_busco(polish, f"{pilon_out}/busco_out", "basidiomycota_odb10")
 
       #just ran busco for the best time
-      if None in (busco_result.busco_score, busco_result.busco_path):
+      if is_first(busco_result) or is_improved(new_busco_result, busco_result):
         busco_result = new_busco_result
       else:
-        busco_result = determine_best_polish(new_busco_result, busco_result)
-
-      if not busco_result:
         break
 
     return busco_result
 
 
-def determine_best_polish(new_busco_result, old_busco_result):
+def is_improved(new_busco_result, old_busco_result):
   if new_busco_result.busco_score > old_busco_result.busco_score:
-    return new_busco_result
+    return True
   else:
     return False
 
+def is_first(busco_result):
+  if None in (busco_result.busco_score, busco_result.busco_path):
+    return True:
+  else:
+    return False
 
 def get_busco_score(short_summary):
   """get busco Complete score from short_summary.txt"""
