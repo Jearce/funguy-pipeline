@@ -43,7 +43,7 @@ class PolishPipeline:
       raise Exception(f"unknown draft type {draft}")
 
     # start with a new draft
-    if draft not hasattr(draft, 'busco_score'):
+    if not hasattr(draft, 'busco_score'):
       busco_result = BuscoResult(contigs=draft, busco_score=None, busco_path=None)
     # or a polished draft from pilon or other polishing tool
     else:
