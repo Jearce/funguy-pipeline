@@ -39,15 +39,15 @@ class PolishPipeline:
 
 
   def medaka_polish(self, polish_dir, draft):
+    if not draft or not Path(draft).is_file():
+      raise Exception(f"unknown draft type {draft}")
 
     # start with a new draft
     if draft not hasattr(draft, 'busco_score'):
       busco_result = BuscoResult(contigs=draft, busco_score=None, busco_path=None)
     # or a polished draft from pilon or other polishing tool
-    elif hasattr(draft, 'busco_score'):
-      busco_result = draft
     else:
-      raise Exception(f"unknown draft type {draft}")
+      busco_result = draft
 
     for i in range(self.MEDAKA_ROUNDS):
       out_dir = f"{polish_dir}/medaka/round_{i}"
@@ -74,6 +74,9 @@ class PolishPipeline:
 
 
   def pilon_polish(self, polish_dir, draft):
+    if not draft or not Path(draft).is_file():
+      raise Exception(f"unknown draft type {draft}")
+
     out_dir = f"{polish_dir}/pilon"
     Path(out_dir).mkdir(exist_ok=True)
 
