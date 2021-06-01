@@ -152,7 +152,7 @@ rule eggnog_anno: ##assume this fungi and use mmseqs to annotate
 		shell("if [ -d {wildcards.species}/eggnog_anno ]; then echo eggnog_anno folder already exists; else mkdir {wildcards.species}/eggnog_anno; fi")
 		shell("emapper.py -m mmseqs -i {input.prot_file} --mmseqs_db {input.database} "
 		"-o eggnog_{wildcards.species} --output_dir {wildcards.species}/eggnog_anno "
-		"--cpu {threads} --override --data_dir eggnog_database/") 	# can add diamond sensitivity, tax_scope (more specific taxa) and 
+		"--cpu {threads} --dbmem --override --data_dir eggnog_database/") 	 
 										# what level to retrieve annotation ( eg tax scope is gammabact but anno is at bacteria level)
 		eggnog_get_fasta(wildcards.species+"/eggnog_anno/eggnog_ecoli.emapper.annotations",input.prot_file)
 		shell("mv eggnog_out {output}")
