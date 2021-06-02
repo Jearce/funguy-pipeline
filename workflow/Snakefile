@@ -1,1 +1,2 @@
+include: 'rules/assemble.smk'
 include: 'rules/reciprocal_polishing.smk'
