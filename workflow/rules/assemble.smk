@@ -86,22 +86,17 @@ rule wengan_assemble: 	#produce all files in cwd. After assembly, move everythin
 		shell("mv wengan_{wildcards.species}* {wildcards.species}/wengan_out/")
 		shell("mv {wildcards.species}/wengan_out/wengan_{wildcards.species}.SPolished.asm.wengan.fasta {output}")
 rule assemble:
-
   input:
     nano="{species}/corrected_{species}_nano.fasta.gz",
     short1="{species}/illumina/{species}_R1.fastq",
     short2="{species}/illumina/{species}_R1.fastq"
-
   output:
     directory("{species}/drafts"),
     wengan = "{species}/drafts/wengan_{species}_assembly.fasta",
     flye = "{species}/drafts/flye_{species}_assembly.fasta",
     canu = "{species}/drafts/canu_{species}_contigs.fasta"
-
   threads: 4
-
   rule:
-
     #canu
     shell("if [ -d {wildcards.species}/drafts ]; then echo drafts folder already exists; else mkdir {wildcards.species}/drafts; fi")
     shell("canu -p {wildcards.species} genomeSize=28m "
@@ -121,7 +116,6 @@ rule assemble:
     "&& mkdir {wildcards.species}/wengan_out/")
     shell("mv wengan_{wildcards.species}* {wildcards.species}/wengan_out/")
     shell("mv {wildcards.species}/wengan_out/wengan_{wildcards.species}.SPolished.asm.wengan.fasta {output.wengan}")
-
 
 rule test_all:
   input:
