@@ -1,6 +1,6 @@
 from Bio import SeqIO
 
-configfile: "../../config/annotation/config.yaml"
+configfile: "../config/annotation/config.yaml"
 
 def eggnog_get_fasta(annofile, prot_file):
 	with open(annofile,"r") as file:
