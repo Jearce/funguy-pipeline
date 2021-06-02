@@ -101,25 +101,23 @@ rule assemble:
   threads: 4
 
   rule:
-    #gsize = read_file(wildcards.species, 'est_genomesize.txt')
-    gsize = 28
 
     #canu
     shell("if [ -d {wildcards.species}/drafts ]; then echo drafts folder already exists; else mkdir {wildcards.species}/drafts; fi")
-    shell("canu -p {wildcards.species} genomeSize={gsize}m "
+    shell("canu -p {wildcards.species} genomeSize=28m "
     "-trimmed -corrected -d {wildcards.species}/canu_out -nanopore {input.nano}"
     "&& cp {wildcards.species}/canu_out/{wildcards.species}.contigs.fasta {wildcards.species}/drafts/")
     shell("mv {wildcards.species}/drafts/{wildcards.species}.contigs.fasta {output.canu}")
 
     #flye 
-    shell("flye -g {gsize}m -t {threads} "
+    shell("flye -g 28m -t {threads} "
     "-o {wildcards.species}/flye_out --nano-corr {input.nano}"
     "&& cp {wildcards.species}/flye_out/assembly.fasta {wildcards.species}/")
     shell("mv {wildcards.species}/assembly.fasta {output.flye}")
 
     #wengan
     shell("perl $WG -x ontraw -a M -s {input.short1},{input.short2} "
-    "-l {input.nano} -p wengan_{wildcards.species} -t {threads} -g {gsize} "
+    "-l {input.nano} -p wengan_{wildcards.species} -t {threads} -g 28 "
     "&& mkdir {wildcards.species}/wengan_out/")
     shell("mv wengan_{wildcards.species}* {wildcards.species}/wengan_out/")
     shell("mv {wildcards.species}/wengan_out/wengan_{wildcards.species}.SPolished.asm.wengan.fasta {output.wengan}")
