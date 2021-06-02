@@ -7,9 +7,8 @@
 ##Input format for assembly: nanopore_{species}.fasta	trimmed_{species}_illumina1.fastq.gz	trimmed_{species}_illumina2.fastq.gz
 
 def read_file(species_id,filename):
-	#with open(species_id+'/'+filename,"r") as file:
-	#	gs=file.readline().strip()
-	return open(species_id+'/'+filename,"r").readline().strip()
+  with open(f"{species_id}/{filename}","r") as file:
+    return file.readline().strip()
 
 rule canu_correction: #produce the corrected reads in {species}/corrected_reads dir then mv it to {species} dir and rename to {output}
 	input:
@@ -86,13 +85,52 @@ rule wengan_assemble: 	#produce all files in cwd. After assembly, move everythin
 		"&& mkdir {wildcards.species}/wengan_out/")
 		shell("mv wengan_{wildcards.species}* {wildcards.species}/wengan_out/")
 		shell("mv {wildcards.species}/wengan_out/wengan_{wildcards.species}.SPolished.asm.wengan.fasta {output}")
-		
+rule assemble:
+
+  input:
+    nano="{species}/corrected_{species}_nano.fasta.gz",
+    short1="{species}/illumina/{species}_R1.fastq",
+    short2="{species}/illumina/{species}_R1.fastq"
+
+  output:
+    directory("{species}/drafts"),
+    wengan = "{species}/drafts/wengan_{species}_assembly.fasta",
+    flye = "{species}/drafts/flye_{species}_assembly.fasta",
+    canu = "{species}/drafts/canu_{species}_contigs.fasta"
+
+  threads: 4
+
+  rule:
+    #gsize = read_file(wildcards.species, 'est_genomesize.txt')
+    gsize = 28
+
+    #canu
+    shell("if [ -d {wildcards.species}/drafts ]; then echo drafts folder already exists; else mkdir {wildcards.species}/drafts; fi")
+    shell("canu -p {wildcards.species} genomeSize={gsize}m "
+    "-trimmed -corrected -d {wildcards.species}/canu_out -nanopore {input.nano}"
+    "&& cp {wildcards.species}/canu_out/{wildcards.species}.contigs.fasta {wildcards.species}/drafts/")
+    shell("mv {wildcards.species}/drafts/{wildcards.species}.contigs.fasta {output.canu}")
+
+    #flye 
+    shell("flye -g {gsize}m -t {threads} "
+    "-o {wildcards.species}/flye_out --nano-corr {input.nano}"
+    "&& cp {wildcards.species}/flye_out/assembly.fasta {wildcards.species}/")
+    shell("mv {wildcards.species}/assembly.fasta {output.flye}")
+
+    #wengan
+    shell("perl $WG -x ontraw -a M -s {input.short1},{input.short2} "
+    "-l {input.nano} -p wengan_{wildcards.species} -t {threads} -g {gsize} "
+    "&& mkdir {wildcards.species}/wengan_out/")
+    shell("mv wengan_{wildcards.species}* {wildcards.species}/wengan_out/")
+    shell("mv {wildcards.species}/wengan_out/wengan_{wildcards.species}.SPolished.asm.wengan.fasta {output.wengan}")
+
+
 rule test_all:
-	input:
-		"{species}/wengan_{species}_assembly.fasta",
-		"{species}/flye_{species}_assembly.fasta",
-		"{species}/canu_{species}_contigs.fasta"
-	output:
-		"{species}/complete.txt"
-	shell:
-		"cat {input} > {output}"
+  input:
+    "{species}/wengan_{species}_assembly.fasta",
+    "{species}/flye_{species}_assembly.fasta",
+    "{species}/canu_{species}_contigs.fasta"
+  output:
+    "{species}/complete.txt"
+  shell:
+    "cat {input} > {output}"
