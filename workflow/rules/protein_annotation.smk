@@ -1,5 +1,7 @@
 from Bio import SeqIO
 
+configfile: "../../config/annotation/config.yaml"
+
 def eggnog_get_fasta(annofile, prot_file):
 	with open(annofile,"r") as file:
 		all_anno={}
@@ -16,14 +18,12 @@ def eggnog_get_fasta(annofile, prot_file):
 					record.id='eggnog_'+record.id+'_'+v
 					record.description=''	  #'eggnog_'+record.description+'_'+v
 			SeqIO.write(record, output,'fasta')
-			
+
 def find_eggnog_path(filename): #look up a filename in eggnog db in cluster location defined in config, if not found return local path to be build
 	if os.path.exists(config["eggnog_db_path"]["cluster_path"]+'{}'.format(filename)):
 		return config["eggnog_db_path"]["cluster_path"]+'{}'.format(filename)
 	else:
 		return config["eggnog_db_path"]["local_path"]+'{}'.format(filename)
-	
-configfile: "config.yaml"
 
 rule create_database_eggnog: #emapper.py --list_taxa > taxa_eggnog.txt to get list of taxa
 	output:
