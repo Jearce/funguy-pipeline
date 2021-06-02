@@ -13,7 +13,7 @@ def read_file(species_id,filename):
 
 rule canu_correction: #produce the corrected reads in {species}/corrected_reads dir then mv it to {species} dir and rename to {output}
 	input:
-		path="{species}/nanopore_{species}.fasta" ##Need to change to fastq if input is different
+		path="{species}/nanopore/{species}.fastq" ##Need to change to fastq if input is different
 	output:
 		"{species}/corrected_{species}_nano.fasta.gz"
 #	params:
@@ -73,8 +73,8 @@ rule wengan_assemble: 	#produce all files in cwd. After assembly, move everythin
 						#Seem to require high coverage ~30X minimum
 	input:
 		nano="{species}/corrected_{species}_nano.fasta.gz",
-		short1="{species}/trimmed_{species}_illumina1.fastq.gz",
-		short2="{species}/trimmed_{species}_illumina2.fastq.gz"
+		short1="{species}/illumina/{species}_R1.fastq",
+		short2="{species}/illumina/{species}_R1.fastq"
 	output:
 		"{species}/drafts/wengan_{species}_assembly.fasta"
 	threads: 4
