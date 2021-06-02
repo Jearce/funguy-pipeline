@@ -163,7 +163,7 @@ rule reciprocal_polishing:
   params:
     root="{species}"
   output:
-    directory("{species}/polished/best/polish.fasta")
+    "{species}/polished/best/polish.fasta"
   run:
     root = Path(input.drafts_dir)
     if not root.exists():
