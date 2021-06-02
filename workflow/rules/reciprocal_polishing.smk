@@ -23,7 +23,7 @@ class PolishPipeline:
     best_polish = max(busco_results, key=lambda busco_result: busco_result.busco_score)
     best_dir = f"{self.root_dir}/best"
     shell("mkdir -p {best_dir}")
-    shell("cp {best_polish.contigs} {best_dir}")
+    shell("cp {best_polish.contigs} {best_dir}/polish.fasta")
 
   def polish(self, draft):
     polish_dir = f"{self.root_dir}/{draft.stem}"
@@ -163,7 +163,7 @@ rule reciprocal_polishing:
   params:
     root="{species}"
   output:
-    directory("{species}/polished")
+    directory("{species}/polished/best/polish.fasta")
   run:
     root = Path(input.drafts_dir)
     if not root.exists():
