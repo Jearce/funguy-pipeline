@@ -12,8 +12,8 @@ rule canu_correction: #produce the corrected reads in {species}/corrected_reads 
 		gsize=get_genome_size
 	run:
 		shell("canu -correct -p canu genomeSize={params.gsize}m stopOnLowCoverage=1 "
-		"-d {wildcards.species}/corrected_reads -nanopore {input.path} "
-		"&& mv {wildcards.species}/corrected_reads/canu.correctedReads.fasta.gz {output}")
+		"-d {wildcards.species}/corrected_reads -nanopore {input.path} ")
+		shell("mv {wildcards.species}/corrected_reads/canu.correctedReads.fasta.gz {output}")
 
 rule canu_trim: #produce the trimmed reads in {species}/trimmed_reads dir then mv it to {species} dir and rename to {output}
 	input:
@@ -24,8 +24,8 @@ rule canu_trim: #produce the trimmed reads in {species}/trimmed_reads dir then m
 		gsize=get_genome_size
 	run:
 		shell("canu -trim -p canu genomeSize={params.gsize}m stopOnLowCoverage=1 "
-		"-corrected -d {wildcards.species}/trimmed_reads -nanopore {input.path} "
-		"&& mv {wildcards.species}/trimmed_reads/canu.trimmedReads.fasta.gz {output}")
+		"-corrected -d {wildcards.species}/trimmed_reads -nanopore {input.path} ")
+		shell("mv {wildcards.species}/trimmed_reads/canu.trimmedReads.fasta.gz {output}")
 
 rule canu_assemble:	#requires trimmed and corrected reads from canu. Output to {species}/canu_out.
 					#Assembled genome is moved to {species}/drafts folder
