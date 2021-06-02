@@ -159,7 +159,11 @@ rule reciprocal_polishing:
     drafts_dir = "{species}/drafts",
     r1 = "{species}/illumina/{species}_R1.fastq",
     r2 = "{species}/illumina/{species}_R2.fastq",
-    long_reads = "{species}/nanopore/{species}.fastq"
+    long_reads = "{species}/nanopore/{species}.fastq",
+
+    canu = "{species}/drafts/canu_{species}_contigs.fastq",
+    flye = "{species}/drafts/flye_{species}_assembly.fasta",
+    wengan = "{species}/drafts/wengan_{species}_assembly.fasta"
   params:
     root="{species}"
   output:
