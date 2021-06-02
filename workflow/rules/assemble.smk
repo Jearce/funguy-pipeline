@@ -1,4 +1,4 @@
-configfile: "assembly_config.yaml"
+configfile: "../../config/assembly/config.yaml"
 
 def get_genome_size(wildcards):
 	return config[wildcards.species]["genomeSize"]
