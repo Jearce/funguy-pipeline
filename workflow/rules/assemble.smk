@@ -11,7 +11,7 @@ rule canu_correction: #produce the corrected reads in {species}/corrected_reads 
 	params:
 		gsize=get_genome_size
 	run:
-		shell("canu -correct -p canu genomeSize={params.gsize}m "
+		shell("canu -correct -p canu genomeSize={params.gsize}m stopOnLowCoverage=1 "
 		"-d {wildcards.species}/corrected_reads -nanopore {input.path} "
 		"&& mv {wildcards.species}/corrected_reads/canu.correctedReads.fasta.gz {output}")
 
@@ -23,7 +23,7 @@ rule canu_trim: #produce the trimmed reads in {species}/trimmed_reads dir then m
 	params:
 		gsize=get_genome_size
 	run:
-		shell("canu -trim -p canu genomeSize={params.gsize}m "
+		shell("canu -trim -p canu genomeSize={params.gsize}m stopOnLowCoverage=1 "
 		"-corrected -d {wildcards.species}/trimmed_reads -nanopore {input.path} "
 		"&& mv {wildcards.species}/trimmed_reads/canu.trimmedReads.fasta.gz {output}")
 
@@ -38,7 +38,7 @@ rule canu_assemble:	#requires trimmed and corrected reads from canu. Output to {
 	threads: 15
 	run:
 		shell("if [ -d {wildcards.species}/drafts ]; then echo drafts folder already exists; else mkdir {wildcards.species}/drafts; fi")
-		shell("canu -p {wildcards.species} genomeSize={params.gsize}m -maxthreads={threads} "
+		shell("canu -p {wildcards.species} genomeSize={params.gsize}m stopOnLowCoverage=1 -maxthreads={threads} "
 		"-trimmed -corrected -d {wildcards.species}/canu_out -nanopore {input.path}"
 		"&& cp {wildcards.species}/canu_out/{wildcards.species}.contigs.fasta {wildcards.species}/drafts/")
 		shell("mv {wildcards.species}/drafts/{wildcards.species}.contigs.fasta {output}")
@@ -67,7 +67,8 @@ rule zipping_file:
 		out1="{species}/illumina/{species}_R1.fastq.gz",
 		out2="{species}/illumina/{species}_R2.fastq.gz"
 	run:
-		shell("gzip {input.short1} && gzip {input.short2}")
+		shell("gzip -c {input.short1} > {output.out1}")
+		shell("gzip -c {input.short2} > {output.out2}")
 
 rule wengan_assemble: 	#produce all files in cwd. After assembly, move everything to wengan_out
 						#assembled genome is moved to {species} folder
