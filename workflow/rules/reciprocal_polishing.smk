@@ -156,7 +156,6 @@ def run_busco(contigs, outdir, lineage):
 
 rule reciprocal_polishing:
   input:
-    drafts_dir = "{species}/drafts",
     r1 = "{species}/illumina/{species}_R1.fastq",
     r2 = "{species}/illumina/{species}_R2.fastq",
     long_reads = "{species}/nanopore/{species}.fastq",
@@ -169,9 +168,10 @@ rule reciprocal_polishing:
   output:
     "{species}/polished/best/polish.fasta"
   run:
-    root = Path(input.drafts_dir)
+    drafts_dir = f"{params.root}/drafts"
+    root = Path(drafts_dir)
     if not root.exists():
-      raise Exception(f"${input.drafts_dir} does not exist")
+      raise Exception(f"{drafts_dir} does not exist")
 
     root_polish_dir =  f"{params.root}/polished"
     Path(root_polish_dir).mkdir(exist_ok=True)
