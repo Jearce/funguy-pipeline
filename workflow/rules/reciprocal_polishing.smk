@@ -51,7 +51,7 @@ class PolishPipeline:
 
     for i in range(self.MEDAKA_ROUNDS):
       out_dir = f"{polish_dir}/medaka/round_{i}"
-      command = f"medaka_consensus -i {self.long_reads} -d {busco_result.contigs} -o {out_dir} -t {self.threads}"
+      command = f"medaka_consensus -i {self.long_reads} -d {busco_result.contigs} -o {out_dir} -t {self.threads} -m r941_min_fast_g303"
       print(f"\n Running: {command} \n")
       subprocess.run(command.split(" "))
 
