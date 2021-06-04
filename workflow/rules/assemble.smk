@@ -122,6 +122,7 @@ rule wengan_assemble: 	#produce all files in cwd. After assembly, move everythin
 	threads: 5
 	params:
 		gsize=get_genome_size
+	shadow: "full"
 	run:
 		shell("if [ -d {wildcards.species}/drafts ]; then echo drafts folder already exists; else mkdir {wildcards.species}/drafts; fi")
 		shell("set +eu && PS1=dummy && . $(conda info --base)/etc/profile.d/conda.sh && conda activate wengan-runtime-env "
