@@ -1,0 +1,3 @@
+calocybe_indica: #Please put {species} here the same way it will be called in wildcard
+    genomeSize: 28    #in million bp
+    others: something_related
