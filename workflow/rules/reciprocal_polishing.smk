@@ -167,6 +167,7 @@ rule reciprocal_polishing:
     root="{species}"
   output:
     "{species}/polished/best/polish.fasta"
+  threads: 30
   run:
     drafts_dir = f"{params.root}/drafts"
     root = Path(drafts_dir)
