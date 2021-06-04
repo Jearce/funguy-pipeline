@@ -88,7 +88,7 @@ class PolishPipeline:
 
       shell("minimap2 -ax sr {busco_result.contigs} {r1} {r2} | samtools view -u | samtools sort -@ {self.threads} > {sorted_aln}")
       shell("samtools index {sorted_aln}")
-      shell("pilon --genome {busco_result.contigs} --frags {sorted_aln} --outdir {pilon_out}")
+      shell("pilon --genome {busco_result.contigs} --frags {sorted_aln} --threads {self.threads} --outdir {pilon_out}")
       shell("rm {sorted_aln}")
 
       polish = f"{pilon_out}/pilon.fasta"
