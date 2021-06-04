@@ -160,7 +160,7 @@ rule reciprocal_polishing:
     r2 = "{species}/illumina/{species}_R2.fastq",
     long_reads = "{species}/nanopore/{species}.fastq",
 
-    canu = "{species}/drafts/canu_{species}_contigs.fastq",
+    canu = "{species}/drafts/canu_{species}_contigs.fasta",
     flye = "{species}/drafts/flye_{species}_assembly.fasta",
     wengan = "{species}/drafts/wengan_{species}_assembly.fasta"
   params:
