@@ -189,6 +189,6 @@ rule reciprocal_polishing:
         long_reads=input.long_reads,
         short_reads=[input.r1, input.r2],
         threads=30,
-        params.busco_lineage,
+        lineage=params.busco_lineage,
     )
     pipeline.run()
