@@ -93,20 +93,30 @@ rule flye_assemble: #requires trimmed and corrected reads from canu. Output to f
 			"&& cp {wildcards.species}/flye_out/assembly.fasta {wildcards.species}/")
 		shell("mv {wildcards.species}/assembly.fasta {output}")
 		
-rule zipping_file:
+rule zipping_short_1:
 	input:
-		short1="{species}/illumina/{species}_R1.fastq",
-		short2="{species}/illumina/{species}_R2.fastq",
-		long="{species}/nanopore/{species}.fastq"
+		short1="{species}/illumina/{species}_R1.fastq"
 	output:
-		out1="{species}/illumina/{species}_R1.fastq.gz",
-		out2="{species}/illumina/{species}_R2.fastq.gz",
-		out3="{species}/nanopore/{species}.fastq.gz"
+		out1="{species}/illumina/{species}_R1.fastq.gz","
 	run:
 		print('Zipping first short read')
 		shell("if [ ! -f {input.short1}.gz ]; then gzip -c {input.short1} > {output.out1}; fi")
-		print('Zipping second short read')
+		
+rule zipping_short_2:
+	input:
+		short2="{species}/illumina/{species}_R2.fastq"
+	output:
+		out2="{species}/illumina/{species}_R2.fastq.gz","
+	run:
+		print('Zipping first short read')
 		shell("if [ ! -f {input.short2}.gz ]; then gzip -c {input.short2} > {output.out2}; fi")
+		
+rule zipping_long:
+	input:
+		long="{species}/nanopore/{species}.fastq"
+	output:
+		out3="{species}/nanopore/{species}.fastq.gz","
+	run:
 		print('Zipping long read')
 		shell("if [ ! -f {input.long}.gz ]; then gzip -c {input.long} > {output.out3}; fi")
 
