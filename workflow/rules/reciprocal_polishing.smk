@@ -168,7 +168,7 @@ rule reciprocal_polishing:
     flye = "{species}/drafts/flye_{species}_assembly.fasta",
     wengan = "{species}/drafts/wengan_{species}_assembly.fasta"
   params:
-    root="{species}"
+    root="{species}",
     busco_lineage=get_lineage
   output:
     "{species}/polished/best/polish.fasta"
