@@ -12,7 +12,7 @@ class BuscoResult:
 
 class PolishPipeline:
 
-  def __init__(self, *, root_dir, drafts, long_reads, short_reads, threads):
+  def __init__(self, *, root_dir, drafts, long_reads, short_reads, threads, lineage):
     self.root_dir = root_dir
     self.drafts = drafts
     self.long_reads = long_reads
@@ -20,6 +20,7 @@ class PolishPipeline:
     self.MEDAKA_ROUNDS = 4
     self.PILON_ROUNDS = 4
     self.threads = threads
+    self.busco_lineage=lineage
 
   def run(self):
     busco_results = [self.polish(draft) for draft in self.drafts]
@@ -62,7 +63,7 @@ class PolishPipeline:
       if not Path(polish).is_file():
         raise Exception(f"medaka was unable to polish {busco_result.contigs} on round {i}")
 
-      new_busco_result = run_busco(polish, f"{out_dir}/busco_out", f"{get_lineage}_odb10")
+      new_busco_result = run_busco(polish, f"{out_dir}/busco_out", self.busco_lineage)
 
       #just ran first polish or the nth polish has improved assembly
       if is_first(busco_result) or is_improved(new_busco_result, busco_result):
@@ -99,8 +100,8 @@ class PolishPipeline:
 
       if not Path(polish).is_file():
         raise Exception(f"pilon was unable to polish {busco_result.contigs} on round {i}")
-      
-      new_busco_result = run_busco(polish, f"{pilon_out}/busco_out", f"{get_lineage}_odb10")
+
+      new_busco_result = run_busco(polish, f"{pilon_out}/busco_out", self.busco_lineage)
 
       #just ran busco for the best time
       if is_first(busco_result) or is_improved(new_busco_result, busco_result):
@@ -168,6 +169,7 @@ rule reciprocal_polishing:
     wengan = "{species}/drafts/wengan_{species}_assembly.fasta"
   params:
     root="{species}"
+    busco_lineage=get_lineage
   output:
     "{species}/polished/best/polish.fasta"
   threads: 30
@@ -187,5 +189,6 @@ rule reciprocal_polishing:
         long_reads=input.long_reads,
         short_reads=[input.r1, input.r2],
         threads=30,
+        params.busco_lineage,
     )
     pipeline.run()
