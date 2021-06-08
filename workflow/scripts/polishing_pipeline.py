@@ -87,7 +87,7 @@ class PolishPipeline:
         self.root_dir = root_dir
         self.drafts = drafts
         self.long_reads = long_reads
-        self.short_reads = short_reads
+        self.r1, self.r2 = short_reads
         self.MEDAKA_ROUNDS = 4
         self.PILON_ROUNDS = 4
         self.threads = threads
@@ -145,15 +145,11 @@ class PolishPipeline:
     def pilon_polish(self, polish_dir, draft):
         busco_result = initialize_busco_result(draft)
 
-        out_dir = f"{polish_dir}/pilon"
-        Path(out_dir).mkdir(exist_ok=True)
-        r1, r2 = self.short_reads
-
         for i in range(self.PILON_ROUNDS):
-            sorted_aln = f"{out_dir}/sorted.bam"
-            pilon_out = f"{out_dir}/round_{i}"
+            sorted_aln = "sorted.bam"
+            pilon_out = f"{polish_dir}/pilon/round_{i}"
             shell(
-                "minimap2 -ax sr {busco_result.contigs} {r1} {r2} | samtools view -u | samtools sort -@ {self.threads} > {sorted_aln}"
+                "minimap2 -ax sr {busco_result.contigs} {self.r1} {self.r2} | samtools view -u | samtools sort -@ {self.threads} > {sorted_aln}"
             )
             shell("samtools index {sorted_aln}")
             shell(
