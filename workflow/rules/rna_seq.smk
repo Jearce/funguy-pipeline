@@ -51,11 +51,11 @@ rule STAR:
     conda:
         "envs/star.yaml"
     threads: 24
-    run:
-        shell("STAR --runThreadN {threads} --runMode genomeGenerate --genomeDir {params.index_dir} --genomeFastaFiles "
-        "{input.genome_fasta} --genomeSAindexNbases 12")
-        shell("STAR --runThreadN {threads} --genomeDir {params.index_dir} --readFilesIn {input.trim1} {input.trim2} "
+    shell:
+        "STAR --runThreadN {threads} --runMode genomeGenerate --genomeDir {params.index_dir} --genomeFastaFiles "
+        "{input.genome_fasta} --genomeSAindexNbases 12 && "
+        "STAR --runThreadN {threads} --genomeDir {params.index_dir} --readFilesIn {input.trim1} {input.trim2} "
         "--outSAMtype BAM Unsorted SortedByCoordinate --outFileNamePrefix {params.prefix} --twopassMode Basic "
         "--outFilterType BySJout --outFilterMultimapNmax 10 --alignSJoverhangMin 8 --outFilterMismatchNmax 999 "
         "--outFilterMismatchNoverReadLmax 0.04 --alignIntronMin 20 --alignIntronMax 10000 --alignMatesGapMax 1000000 "
-        "--outFilterIntronMotifs RemoveNoncanonical --outReadsUnmapped Fastx")
+        "--outFilterIntronMotifs RemoveNoncanonical --outReadsUnmapped Fastx"
