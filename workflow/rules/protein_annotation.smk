@@ -39,7 +39,7 @@ rule eggnog_anno: ##assume this fungi and use mmseqs to annotate
 					# assume input is protein
 					#if cluster database is specified in config, scripts will find relevant inputs. If inputs not there, will create local db
 	input:
-		prot_file="{species}/predicted_prot.fa", ## need predicted gene file name here
+		prot_file="{species}/augustus.hints.aa", ## need predicted gene file name here
 		database=find_eggnog_path('fungi.mmseqs/fungi.mmseqs'),
 		eggnog_data=find_eggnog_path('eggnog.db'),
 		proteome_data=find_eggnog_path('e5.proteomes.faa')
