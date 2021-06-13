@@ -61,8 +61,8 @@ rule canu_assemble:	#requires trimmed and corrected reads from canu. Output to {
 	run:
 		shell("if [ -d {wildcards.species}/drafts ]; then echo drafts folder already exists; else mkdir {wildcards.species}/drafts; fi")
 		if (fastq_count(input.raw)/(float(params.gsize)*(10**6)) <= 20):
-			shell("canu -p {wildcards.species} genomeSize={params.gsize}m corMinCoverage=0 correctedErrorRate=0.25 -maxthreads={threads} -maxmemory=60 "
-			"corMhapSensitivity=high minReadLength=600 -d {wildcards.species}/canu_out -nanopore {input.path} -useGrid=0 "
+			shell("canu -p {wildcards.species} genomeSize={params.gsize}m corMinCoverage=0 correctedErrorRate=0.288 -maxthreads={threads} -maxmemory=60 "
+			"corMhapSensitivity=high minReadLength=600 minOverlapLength=600 rawErrorRate=0.900 -d {wildcards.species}/canu_out -nanopore {input.path} -useGrid=0 "
 			"&& cp {wildcards.species}/canu_out/{wildcards.species}.contigs.fasta {wildcards.species}/drafts/")
 		else:
 			shell("canu -p {wildcards.species} genomeSize={params.gsize}m stopOnLowCoverage=1 -maxthreads={threads} -maxmemory=60 "
