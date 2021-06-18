@@ -136,7 +136,7 @@ rule wengan_assemble: 	#produce all files in cwd. After assembly, move everythin
 	run:
 		shell("if [ -d {wildcards.species}/drafts ]; then echo drafts folder already exists; else mkdir {wildcards.species}/drafts; fi")
 		shell("set +eu && PS1=dummy && . $(conda info --base)/etc/profile.d/conda.sh && conda activate wengan-runtime-env "
-		"&& perl $WG -x ontraw -a M -s {input.short1},{input.short2} "
+		"&& export WG=/project/balan/bin/wengan-v0.2-bin-Linux/wengan.pl && perl $WG -x ontraw -a M -s {input.short1},{input.short2} "  #need to deal with wengan path
 		"-l {input.nano} -p wengan_{wildcards.species} -t {threads} -g {params.gsize} "
 		"&& mkdir {wildcards.species}/wengan_out/")
 		shell("mv wengan_{wildcards.species}* {wildcards.species}/wengan_out/")
