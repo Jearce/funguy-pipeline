@@ -57,7 +57,7 @@ rule canu_assemble:	#requires trimmed and corrected reads from canu. Output to {
 		"{species}/drafts/canu_{species}_contigs.fasta"
 	params:
 		gsize=get_genome_size
-	threads: 20
+	threads: 35
 	run:
 		shell("if [ -d {wildcards.species}/drafts ]; then echo drafts folder already exists; else mkdir {wildcards.species}/drafts; fi")
 		if (fastq_count(input.raw)/(float(params.gsize)*(10**6)) <= 20):
@@ -77,7 +77,7 @@ rule flye_assemble: #requires trimmed and corrected reads from canu. Output to f
 		raw="{species}/nanopore/{species}.fastq.gz"
 	output:
 		"{species}/drafts/flye_{species}_assembly.fasta"
-	threads: 15
+	threads: 35
 	params:
 		gsize=get_genome_size
 	run:
@@ -129,7 +129,7 @@ rule wengan_assemble: 	#produce all files in cwd. After assembly, move everythin
 		short2="{species}/illumina/{species}_R2.fastq.gz"
 	output:
 		"{species}/drafts/wengan_{species}_assembly.fasta"
-	threads: 5
+	threads: 35
 	params:
 		gsize=get_genome_size
 	shadow: "full"
